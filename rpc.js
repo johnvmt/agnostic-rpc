@@ -66,11 +66,14 @@ Rpc.prototype.handleRequest = function(requestMessage, requestCallback, response
 	// TODO trigger errors
 };
 
-Rpc.prototype.handle = function(message) {
-	if(typeof message.response != 'undefined') // response to request from this node
-		this.handleResponse(message);
-	else // request to this node
-		this.handleRequest(message);
+Rpc.prototype.messageIsResponse = function(message) {
+	// response to request from this node
+	return (typeof message.response != 'undefined');
+};
+
+Rpc.prototype.messageIsRequest = function(message) {
+	// response to request from this node
+	return !this.messageIsResponse(message);
 };
 
 module.exports = function(nodeRouter) {
