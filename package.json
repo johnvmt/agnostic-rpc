@@ -1,7 +1,7 @@
 {
   "name": "agnostic-rpc",
   "version": "0.0.1",
-  "description": "Route URLs without requiring Express and friends",
+  "description": "RPC handler for any type of transport",
   "license": "MIT",
   "author": {
     "name": "John Murphy-Teixidor",
