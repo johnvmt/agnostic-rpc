@@ -1,18 +1,17 @@
 {
   "name": "agnostic-rpc",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "RPC handler for any type of transport",
   "authors": [
     "John Murphy-Teixidor <johnvmt@gmail.com>"
   ],
   "license": "MIT",
-  "main": "rpc.js",
+  "main": "AgnosticRpc.min.js",
   "keywords": [],
   "ignore": [
     "**/.*",
     "bower_components"
   ],
   "dependencies": {
-    "url-pattern": "0.10.x"
   }
 }

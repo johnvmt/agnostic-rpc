@@ -1,10 +1,10 @@
 var Utils = require('./Utils');
 
-function Rpc() {
+function AgnosticRpc() {
 	this._requests = {};
 }
 
-Rpc.prototype.request = function() {
+AgnosticRpc.prototype.request = function() {
 	var parsedArgs = Utils.parseArgs(
 		arguments,
 		[
@@ -36,7 +36,7 @@ Rpc.prototype.request = function() {
 	return request;
 };
 
-Rpc.prototype.handleResponse = function(message) {
+AgnosticRpc.prototype.handleResponse = function(message) {
 	if(typeof message.id == 'string') { // responding to a logged request
 		if(typeof this._requests[message.id] == 'object') { // request is logged
 			var request = this._requests[message.id];
@@ -49,7 +49,7 @@ Rpc.prototype.handleResponse = function(message) {
 	// TODO trigger errors
 };
 
-Rpc.prototype.handleRequest = function(requestMessage, requestCallback, responseEmitter) {
+AgnosticRpc.prototype.handleRequest = function(requestMessage, requestCallback, responseEmitter) {
 	var onResponse = function(response) {
 		var responseMessage = {
 			response: response
@@ -66,16 +66,16 @@ Rpc.prototype.handleRequest = function(requestMessage, requestCallback, response
 	// TODO trigger errors
 };
 
-Rpc.prototype.messageIsResponse = function(message) {
+AgnosticRpc.prototype.messageIsResponse = function(message) {
 	// response to request from this node
 	return (typeof message.response != 'undefined');
 };
 
-Rpc.prototype.messageIsRequest = function(message) {
+AgnosticRpc.prototype.messageIsRequest = function(message) {
 	// response to request from this node
 	return !this.messageIsResponse(message);
 };
 
-module.exports = function(nodeRouter) {
-	return new Rpc(nodeRouter);
+module.exports = function() {
+	return new AgnosticRpc();
 };
