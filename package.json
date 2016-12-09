@@ -1,6 +1,6 @@
 {
   "name": "agnostic-rpc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "RPC handler for any type of transport",
   "license": "MIT",
   "author": {
@@ -13,7 +13,8 @@
   },
   "devDependencies": {
     "browserify": "11.2.x",
-    "minifyify": "7.3.x"
+    "minifyify": "7.3.x",
+    "mocha": "3.2.x"
   },
   "dependencies": {
   },

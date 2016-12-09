@@ -1,27 +1,35 @@
-var rpc1 = require('../')();
-var rpc2 = require('../')();
+var assert = require('assert');
+var oms = require('../')(); // use defaults (localhost/test) as defined in defaults.js
 
-// NODE 1
-var requestMessage = rpc1.request({
-	path: "somepath",
-	query: {
-		param: "value"
-	}
-}, function(error, response) {
-	console.log("RESPONSE", error, response);
-});
+describe('Send and receive', function() {
+	it('should make a request, receive the request and respond', function(done) {
 
-// NODE 2
-function requestCallback(request, respond) {
-	console.log(request);
+		var rpc1 = require('../')();
+		var rpc2 = require('../')();
 
-	respond({
-		response2: "response"
+		// NODE 1
+		var requestMessage = rpc1.request("node-request",
+			function(error, response) {
+			if(error)
+				throw new Error(error);
+			else if(response == "node-response")
+				done();
+			else
+				throw new Error("Unexpected response " + response);
+		});
+
+		// NODE 2
+		function requestCallback(request, respond) {
+			if(request != "node-request")
+				throw new Error("Wrong request " + request);
+			else
+				respond("node-response");
+		}
+
+		function responseEmitter(responseMessage) {
+			rpc1.handleResponse(responseMessage);
+		}
+
+		rpc2.handleRequest(requestMessage, requestCallback, responseEmitter);
 	});
-}
-
-function responseEmitter(responseMessage) {
-	rpc1.handleResponse(responseMessage);
-}
-
-rpc2.handleRequest(requestMessage, requestCallback, responseEmitter);
+});

@@ -1,6 +1,6 @@
 {
   "name": "agnostic-rpc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "RPC handler for any type of transport",
   "authors": [
     "John Murphy-Teixidor <johnvmt@gmail.com>"

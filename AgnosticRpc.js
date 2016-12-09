@@ -8,7 +8,7 @@ AgnosticRpc.prototype.request = function() {
 	var parsedArgs = Utils.parseArgs(
 		arguments,
 		[
-			{name: 'query', level: 0,  validate: function(arg, allArgs) { return typeof arg == 'object'; }},
+			{name: 'query', level: 0,  validate: function(arg, allArgs) { return typeof arg != 'undefined'; }},
 			{name: 'options', level: 1,  validate: function(arg, allArgs) { return typeof arg == 'object'; }, default: {}},
 			{name: 'callback', level: 1,  validate: function(arg, allArgs) { return typeof(arg) === 'function'; }}
 		]
