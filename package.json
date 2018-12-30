@@ -1,6 +1,6 @@
 {
   "name": "agnostic-rpc",
-  "version": "0.0.3",
+  "version": "1.0.0",
   "description": "RPC handler for any type of transport",
   "license": "MIT",
   "author": {
@@ -11,16 +11,19 @@
     "type": "git",
     "url": "https://github.com/johnvmt/agnostic-rpc"
   },
+  "scripts": {
+    "test": "mocha --colors ./test/*.test.js"
+  },
   "devDependencies": {
-    "browserify": "11.2.x",
-    "minifyify": "7.3.x",
-    "mocha": "3.2.x"
+    "chai": "^4.1.2",
+    "babel-eslint": "^8.0.3",
+    "eslint": "^5.0.1",
+    "mocha": "^4.0.1"
   },
   "dependencies": {
+    "esm": "3.0.x",
+    "wolfy87-eventemitter": "^5.2.5"
   },
-  "scripts": {
-    "test": "mocha test",
-    "prepublish": "node ./browserify.js"
-  },
-  "main": "AgnosticRpc.js"
+  "main": "index.js",
+  "module": "AgnosticRpc.js"
 }

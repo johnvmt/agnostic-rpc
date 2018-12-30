@@ -1,81 +1,209 @@
-var Utils = require('./Utils');
+import EventEmitter from 'wolfy87-eventemitter';
 
-function AgnosticRpc() {
-	this._requests = {};
+class AgnosticRpc extends EventEmitter {
+	constructor() {
+		super();
+	}
+
+	static messageIsResponse(encodedMessage) {
+		return (AgnosticRpc._validEncodedMessage(encodedMessage) && typeof encodedMessage.response !== 'undefined');
+	}
+
+	static messageIsRequest(encodedMessage) {
+		return (AgnosticRpc._validEncodedMessage(encodedMessage) && typeof encodedMessage.request !== 'undefined');
+	}
+
+	static _validEncodedMessage(encodedMessage) {
+		return (typeof encodedMessage === 'object' && encodedMessage !== null && typeof encodedMessage.id !== 'undefined');
+	}
+
+	static _uniqueId() {
+		function s4() {
+			return Math.floor((1 + Math.random()) * 0x10000)
+				.toString(16)
+				.substring(1);
+		}
+		return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+			s4() + '-' + s4() + s4() + s4();
+	}
 }
 
-AgnosticRpc.prototype.request = function() {
-	var parsedArgs = Utils.parseArgs(
-		arguments,
-		[
-			{name: 'query', level: 0,  validate: function(arg, allArgs) { return typeof arg != 'undefined'; }},
-			{name: 'options', level: 1,  validate: function(arg, allArgs) { return typeof arg == 'object'; }, default: {}},
-			{name: 'callback', level: 1,  validate: function(arg, allArgs) { return typeof(arg) === 'function'; }}
-		]
-	);
-
-	var defaultOptions = {
-		multipleResponses: false
-	};
-
-	// TODO add timeout option
-	var options = Utils.objectMerge(defaultOptions, parsedArgs.options); // merge options with defaults
-
-	if(typeof parsedArgs.callback == 'function') {
-		var requestId = Utils.uniqueId();
-		this._requests[requestId] = {callback: parsedArgs.callback, options: options};
+class AgnosticRpcRequestController extends EventEmitter {
+	constructor(options) {
+		super();
+		this._canceled = false;
+		this._sentRequest = false;
+		this.options = options;
 	}
 
-	var request = {
-		query: parsedArgs.query
-	};
-
-	if(typeof requestId != 'undefined')
-		request.id = requestId;
-
-	return request;
-};
-
-AgnosticRpc.prototype.handleResponse = function(message) {
-	if(typeof message.id == 'string') { // responding to a logged request
-		if(typeof this._requests[message.id] == 'object') { // request is logged
-			var request = this._requests[message.id];
-			if(typeof request.callback == 'function') // valid callback is logged
-				request.callback(null, message.response); // callback with no error
-			if(!request.options['multipleResponses'])
-				delete this._requests[message.id];
+	respond(response) {
+		if(this._canceled)
+			throw new Error('rpc_canceled');
+		else {
+			this.emit('response', response);
+			if(!this.options.multipleResponses)
+				this.cancel();
 		}
 	}
-	// TODO trigger errors
-};
 
-AgnosticRpc.prototype.handleRequest = function(requestMessage, requestCallback, responseEmitter) {
-	var onResponse = function(response) {
-		var responseMessage = {
-			response: response
-		};
+	request(requestMessage) {
+		const self = this;
 
-		if(typeof requestMessage.id == 'string')
-			responseMessage.id = requestMessage.id;
+		if(self._sentRequest && !self.options.multipleRequests)
+			throw new Error('multiple_requests_prohibited');
+		else {
+			self.emit('request', {
+				request: requestMessage,
+				options: self.options
+			});
+		}
+	}
 
-		responseEmitter(responseMessage);
-	};
+	cancel() {
+		this._canceled = true;
+		this.emit('end');
+	}
+}
 
-	requestCallback(requestMessage.query, onResponse);
+class AgnosticRpcServer extends AgnosticRpc {
+	constructor() {
+		super();
+	}
 
-	// TODO trigger errors
-};
+	/**
+	 * Handle incoming message of unknown type
+	 * If it's a request, process it
+	 * Otherwise, ignore it
+	 */
+	handleMessage(encodedMessage) {
+		if(AgnosticRpc.messageIsRequest(encodedMessage))
+			return this.handleRequest(encodedMessage);
+	}
 
-AgnosticRpc.prototype.messageIsResponse = function(message) {
-	// response to request from this node
-	return (typeof message.response != 'undefined');
-};
+	/**
+	 * Handle incoming request from client
+	 * @param encodedRequest
+	 */
+	handleRequest(encodedRequest) {
+		const self = this;
 
-AgnosticRpc.prototype.messageIsRequest = function(message) {
-	// response to request from this node
-	return !this.messageIsResponse(message);
-};
+		if(typeof encodedRequest.id === 'undefined')
+			throw new Error('id_undefined');
+		else {
+			const requestId = encodedRequest.id;
 
-module.exports = function() {
-	return new AgnosticRpc();
-};
+			self.emit('request', {
+				request: encodedRequest.request,
+				options: (encodedRequest.options || {}),
+				respond: function(response) {
+					self.emit('response', {
+						id: requestId,
+						response: response
+					});
+				}
+			});
+		}
+	}
+}
+
+class AgnosticRpcClient extends AgnosticRpc {
+	constructor() {
+		super();
+		this._requests = {};
+	}
+
+	requestController(passedOptions) {
+		const self = this;
+
+		let options = Object.assign({
+			multipleResponses: false,
+			multipleRequests: false,
+			id: AgnosticRpc._uniqueId()
+		}, (passedOptions || {}));
+
+		self._requests[options.id] = new AgnosticRpcRequestController(options);
+
+		self._requests[options.id].once('end', function() {
+			delete self._requests[options.id];
+		});
+
+		self._requests[options.id].on('request', function(encodedRequest) {
+			self.emit('request', {
+				id: options.id,
+				request: encodedRequest.request,
+				options: encodedRequest.options
+			});
+		});
+
+		return self._requests[options.id];
+	}
+
+	/**
+	 * Send a request
+	 * Returns a promise that resolves when request controller ends
+	 * @param requestMessage
+	 * @param passedOptionsOrResponseCallback
+	 * @param responseCallback
+	 * @returns {Promise}
+	 */
+	request(requestMessage, passedOptionsOrResponseCallback, responseCallback) {
+		let passedOptions = {};
+
+		if(typeof passedOptionsOrResponseCallback === 'function') // requestMessage, responseCallback
+			responseCallback = passedOptionsOrResponseCallback;
+		else // requestMessage, passedOptions, [responseCallback]
+			passedOptions = passedOptionsOrResponseCallback;
+
+		let requestController = this.requestController(passedOptions);
+
+		return new Promise(function(resolve, reject) {
+			let lastResponse;
+
+			requestController.on('response', function(response) {
+				lastResponse = response;
+				if(typeof responseCallback === 'function')
+					responseCallback(response);
+			});
+
+			requestController.once('end', function() {
+				resolve(lastResponse);
+			});
+
+			try {
+				requestController.request(requestMessage);
+			}
+			catch(error) {
+				reject(error);
+			}
+		});
+	}
+
+	/**
+	 * Handle incoming message of unknown type
+	 * If it's a response, process it
+	 * Otherwise, ignore it
+	 * @param encodedMessage
+	 * @returns {*}
+	 */
+	handleMessage(encodedMessage) {
+		if(AgnosticRpc.messageIsResponse(encodedMessage))
+			return this.handleResponse(encodedMessage);
+	}
+
+	/**
+	 * Handle incoming request from client
+	 * @param encodedResponse
+	 */
+	handleResponse(encodedResponse) {
+		if(typeof encodedResponse !== 'object' || encodedResponse === null || typeof encodedResponse.response === 'undefined')
+			throw new Error('invalid_response');
+		else if(typeof encodedResponse.id === 'undefined')
+			throw new Error('id_undefined');
+		else if(typeof this._requests[encodedResponse.id] !== 'object')
+			throw new Error('id_not_found');
+		else
+			this._requests[encodedResponse.id].respond(encodedResponse.response);
+	}
+}
+
+export {AgnosticRpc, AgnosticRpcClient, AgnosticRpcServer, AgnosticRpcRequestController};
