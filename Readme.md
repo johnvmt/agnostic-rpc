@@ -14,17 +14,19 @@ Useful, for example, when transmitting multiple requests and responses to a remo
 		// Server logic goes here
 		respond('response-message');
 	});
-
-	rpcServer.on('response', function(encodedResponse) {
+	
+	rpcServer.on('response', function(response) {
+		let encodedResponse = response.encoded;
 		// Transmission of encoded response from server to client goes here
-		// In this example, they're directly connected
+        // In this example, they're directly connected
 		rpcClient.handleResponse(encodedResponse);
 	});
-
-	rpcClient.on('request', function(encodedRequest) {
+    
+	rpcClient.on('request', function(request) {
+		let requestEncoded = request.encoded;
 		// Transmission of encoded request from client to server goes here
 		// In this example, they're directly connected
-		rpcServer.handleRequest(encodedRequest);
+		rpcServer.handleRequest(requestEncoded);
 	});
 
 	rpcClient.request('request-message')
@@ -45,16 +47,18 @@ Useful, for example, when transmitting multiple requests and responses to a remo
 		respond('response-message-2');
 	});
 
-	rpcServer.on('response', function(encodedResponse) {
+	rpcServer.on('response', function(response) {
+		let encodedResponse = response.encoded;
 		// Transmission of encoded response from server to client goes here
 		// In this example, they're directly connected
 		rpcClient.handleResponse(encodedResponse);
 	});
-
-	rpcClient.on('request', function(encodedRequest) {
+	
+	rpcClient.on('request', function(request) {
+		let requestEncoded = request.encoded;
 		// Transmission of encoded request from client to server goes here
 		// In this example, they're directly connected
-		rpcServer.handleRequest(encodedRequest);
+		rpcServer.handleRequest(requestEncoded);
 	});
 
 	rpcClient.request('request-message', {
@@ -79,16 +83,18 @@ Useful, for example, when transmitting multiple requests and responses to a remo
 		respond('response-message-last');
 	});
 
-	rpcServer.on('response', function(encodedResponse) {
+	rpcServer.on('response', function(response) {
+		let encodedResponse = response.encoded;
 		// Transmission of encoded response from server to client goes here
 		// In this example, they're directly connected
 		rpcClient.handleResponse(encodedResponse);
 	});
-
-	rpcClient.on('request', function(encodedRequest) {
+	
+	rpcClient.on('request', function(request) {
+		let requestEncoded = request.encoded;
 		// Transmission of encoded request from client to server goes here
 		// In this example, they're directly connected
-		rpcServer.handleRequest(encodedRequest);
+		rpcServer.handleRequest(requestEncoded);
 	});
 
 	let rpcRequest = rpcClient.requestController({

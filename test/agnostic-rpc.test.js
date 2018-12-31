@@ -22,14 +22,14 @@ describe('Using requestController', () => {
 					respond('unknown-response');
 			});
 
-			rpcServer.on('response', function(encodedResponse) {
+			rpcServer.on('response', function(response) {
 				// Transmit encoded request from client to server here
-				rpcClient.handleResponse(encodedResponse);
+				rpcClient.handleResponse(response.encoded);
 			});
 
-			rpcClient.on('request', function(encodedRequest) {
+			rpcClient.on('request', function(request) {
 				// Transmit encoded request from client to server here
-				rpcServer.handleRequest(encodedRequest);
+				rpcServer.handleRequest(request.encoded);
 			});
 
 			let rpcRequest = rpcClient.requestController();
@@ -60,14 +60,14 @@ describe('Using request', () => {
 					respond('unknown-response');
 			});
 
-			rpcServer.on('response', function(encodedResponse) {
+			rpcServer.on('response', function(response) {
 				// Transmit encoded request from client to server here
-				rpcClient.handleResponse(encodedResponse);
+				rpcClient.handleResponse(response.encoded);
 			});
 
-			rpcClient.on('request', function(encodedRequest) {
+			rpcClient.on('request', function(request) {
 				// Transmit encoded request from client to server here
-				rpcServer.handleRequest(encodedRequest);
+				rpcServer.handleRequest(request.encoded);
 			});
 
 			rpcClient.request('request-message')
@@ -99,14 +99,14 @@ describe('Using request', () => {
 					respond('unknown-response');
 			});
 
-			rpcServer.on('response', function(encodedResponse) {
+			rpcServer.on('response', function(response) {
 				// Transmit encoded request from client to server here
-				rpcClient.handleResponse(encodedResponse);
+				rpcClient.handleResponse(response.encoded);
 			});
 
-			rpcClient.on('request', function(encodedRequest) {
+			rpcClient.on('request', function(request) {
 				// Transmit encoded request from client to server here
-				rpcServer.handleRequest(encodedRequest);
+				rpcServer.handleRequest(request.encoded);
 			});
 
 			rpcClient.request('request-message', {

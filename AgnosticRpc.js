@@ -93,11 +93,15 @@ class AgnosticRpcServer extends AgnosticRpc {
 			const requestId = encodedRequest.id;
 
 			self.emit('request', {
+				encoded: encodedRequest,
 				request: encodedRequest.request,
 				options: (encodedRequest.options || {}),
 				respond: function(response) {
 					self.emit('response', {
-						id: requestId,
+						encoded: {
+							id: requestId,
+							response: response
+						},
 						response: response
 					});
 				}
@@ -127,11 +131,14 @@ class AgnosticRpcClient extends AgnosticRpc {
 			delete self._requests[options.id];
 		});
 
-		self._requests[options.id].on('request', function(encodedRequest) {
+		self._requests[options.id].on('request', function({request, options}) {
 			self.emit('request', {
-				id: options.id,
-				request: encodedRequest.request,
-				options: encodedRequest.options
+				encoded: {
+					id: options.id,
+					request: request
+				},
+				request: request,
+				options: options
 			});
 		});
 
