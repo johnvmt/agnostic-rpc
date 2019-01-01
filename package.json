@@ -1,6 +1,6 @@
 {
   "name": "agnostic-rpc",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "RPC handler for any type of transport",
   "license": "MIT",
   "author": {
@@ -25,5 +25,6 @@
     "wolfy87-eventemitter": "^5.2.5"
   },
   "main": "index.js",
+  "jsnext:main": "AgnosticRpc.js",
   "module": "AgnosticRpc.js"
 }
