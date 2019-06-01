@@ -28,7 +28,50 @@ class AgnosticRpc extends EventEmitter {
 	}
 }
 
-class AgnosticRpcRequestController extends EventEmitter {
+class AgnosticRpcServerRequestController extends EventEmitter {
+	constructor(rpcServer, encodedRequest) {
+		super();
+		const self = this;
+
+		self.rpcServer = rpcServer;
+		self.encoded = encodedRequest;
+		self.requestId = encodedRequest.id;
+		self.request = encodedRequest.request;
+		self.options = (encodedRequest.options || {});
+		self._canceled = false;
+
+		const onServerRequestEnd = (requestId) => {
+			if(requestId === self.requestId) {
+				if(!self._canceled) {
+					self._canceled = true;
+					self.emit('end');
+					self.rpcServer.off('end', onServerRequestEnd);
+				}
+			}
+		};
+
+		self.rpcServer.on('end', onServerRequestEnd);
+
+		self.cancel = () => {
+			if(self._canceled)
+				throw new Error('rpc_canceled');
+			else
+				self.emit('end');
+		};
+
+		self.respond = (response) => {
+			self.rpcServer.emit('response', {
+				encoded: {
+					id: self.requestId,
+					response: response
+				},
+				response: response
+			});
+		};
+	}
+}
+
+class AgnosticRpcClientRequestController extends EventEmitter {
 	constructor(options) {
 		super();
 		this._canceled = false;
@@ -92,20 +135,13 @@ class AgnosticRpcServer extends AgnosticRpc {
 		else {
 			const requestId = encodedRequest.id;
 
-			self.emit('request', {
-				encoded: encodedRequest,
-				request: encodedRequest.request,
-				options: (encodedRequest.options || {}),
-				respond: function(response) {
-					self.emit('response', {
-						encoded: {
-							id: requestId,
-							response: response
-						},
-						response: response
-					});
-				}
+			const requestController = new AgnosticRpcServerRequestController(self, encodedRequest);
+
+			requestController.on('end', () => {
+				self.emit('end', requestId);
 			});
+
+			self.emit('request', requestController);
 		}
 	}
 }
@@ -113,7 +149,7 @@ class AgnosticRpcServer extends AgnosticRpc {
 class AgnosticRpcClient extends AgnosticRpc {
 	constructor() {
 		super();
-		this._requests = {};
+		this.requests = new Map();
 	}
 
 	requestController(passedOptions) {
@@ -125,24 +161,27 @@ class AgnosticRpcClient extends AgnosticRpc {
 			id: AgnosticRpc._uniqueId()
 		}, (passedOptions || {}));
 
-		self._requests[options.id] = new AgnosticRpcRequestController(options);
+		const requestController = new AgnosticRpcClientRequestController(options);
 
-		self._requests[options.id].once('end', function() {
-			delete self._requests[options.id];
+		self.requests.set(options.id, requestController);
+
+		requestController.once('end', function() {
+			self.requests.delete(options.id);
 		});
 
-		self._requests[options.id].on('request', function({request, options}) {
+		requestController.on('request', function({request, options}) {
 			self.emit('request', {
 				encoded: {
 					id: options.id,
 					request: request
 				},
+				requestId: options.id,
 				request: request,
 				options: options
 			});
 		});
 
-		return self._requests[options.id];
+		return requestController;
 	}
 
 	/**
@@ -206,11 +245,11 @@ class AgnosticRpcClient extends AgnosticRpc {
 			throw new Error('invalid_response');
 		else if(typeof encodedResponse.id === 'undefined')
 			throw new Error('id_undefined');
-		else if(typeof this._requests[encodedResponse.id] !== 'object')
+		else if(!this.requests.has(encodedResponse.id))
 			throw new Error('id_not_found');
 		else
-			this._requests[encodedResponse.id].respond(encodedResponse.response);
+			this.requests.get(encodedResponse.id).respond(encodedResponse.response);
 	}
 }
 
-export {AgnosticRpc, AgnosticRpcClient, AgnosticRpcServer, AgnosticRpcRequestController};
+export {AgnosticRpc, AgnosticRpcClient, AgnosticRpcServer, AgnosticRpcClientRequestController};

@@ -3,8 +3,6 @@
 const chai = require('chai');
 let {AgnosticRpcServer, AgnosticRpcClient} = require('../index');
 
-console.log(AgnosticRpcServer);
-
 chai.expect();
 
 const expect = chai.expect;

@@ -43,10 +43,11 @@ rpcClient.request('request-message')
 const rpcServer = new AgnosticRpcServer();
 const rpcClient = new AgnosticRpcClient();
 
-rpcServer.on('request', function({request, options, respond}) {
+rpcServer.on('request', function({request, options, respond, cancel}) {
 	// Server logic goes here
 	respond('response-message-1');
 	respond('response-message-2');
+	cancel(); // Cancel after two responses sent
 });
 
 rpcServer.on('response', function(response) {
@@ -118,6 +119,10 @@ rpcRequest.on('end', function() {
 	// Called right after cancel
 });
 ```
+
+## Changes ##
+
+- v1.2.0: RPCServer's 'request' event now emits requestController with a cancel function
 
 ## TODOs ##
 
